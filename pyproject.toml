@@ -3,8 +3,8 @@ requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
 
 [tool.poetry]
-name = "tree-shaker"
-version = "0.1.0"
+name = "js-optimizer"
+version = "1.0.0"
 description = ""
 
 [tool.poetry.dependencies]
