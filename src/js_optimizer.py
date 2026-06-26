@@ -1,73 +1,34 @@
+import hashlib
 import json
-import argparse
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List
 
 @dataclass
-class Module:
+class SourceFile:
     name: str
-    exports: List[str]
-    critical_path: bool
+    content: str
 
-class JSOptimizer:
-    def __init__(self, modules: List[Module]):
-        self.modules = modules
+@dataclass
+class OptimizerVersion:
+    version: str
 
-    def tree_shaking(self) -> List[Module]:
-        used_exports = set()
-        for module in self.modules:
-            if module.critical_path:
-                used_exports.update(module.exports)
-        optimized_modules = []
-        for module in self.modules:
-            if any(export in used_exports for export in module.exports):
-                optimized_modules.append(module)
-        return optimized_modules
+class JsOptimizer:
+    def __init__(self, optimizer_version: OptimizerVersion):
+        self.optimizer_version = optimizer_version
 
-    def critical_path_pre_compilation(self) -> List[Module]:
-        pre_compiled_modules = []
-        for module in self.modules:
-            if module.critical_path:
-                pre_compiled_modules.append(module)
-        return pre_compiled_modules
+    def optimize(self, source_files: List[SourceFile]) -> str:
+        content_hash = self._calculate_content_hash(source_files)
+        optimizer_version_hash = self._calculate_optimizer_version_hash()
+        combined_hash = self._combine_hashes(content_hash, optimizer_version_hash)
+        return combined_hash
 
-    def generate_source_maps(self) -> Dict[str, str]:
-        source_maps = {}
-        for module in self.modules:
-            source_maps[module.name] = module.name
-        return source_maps
+    def _calculate_content_hash(self, source_files: List[SourceFile]) -> str:
+        combined_content = ''.join(file.content for file in source_files)
+        return hashlib.sha256(combined_content.encode()).hexdigest()
 
-    def dry_run(self) -> str:
-        optimized_modules = self.tree_shaking()
-        removed_modules = [module for module in self.modules if module not in optimized_modules]
-        size_savings = len(removed_modules)
-        report = f"Removed {size_savings} modules"
-        return report
+    def _calculate_optimizer_version_hash(self) -> str:
+        return hashlib.sha256(self.optimizer_version.version.encode()).hexdigest()
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--dry-run", action="store_true")
-    args = parser.parse_args()
-    modules = [
-        Module("module1", ["export1", "export2"], True),
-        Module("module2", ["export3", "export4"], False),
-        Module("module3", ["export5", "export6"], True),
-    ]
-    optimizer = JSOptimizer(modules)
-    if args.dry_run:
-        print(optimizer.dry_run())
-    else:
-        optimized_modules = optimizer.tree_shaking()
-        pre_compiled_modules = optimizer.critical_path_pre_compilation()
-        source_maps = optimizer.generate_source_maps()
-        print("Optimized modules:")
-        for module in optimized_modules:
-            print(module.name)
-        print("Pre-compiled modules:")
-        for module in pre_compiled_modules:
-            print(module.name)
-        print("Source maps:")
-        print(json.dumps(source_maps))
-
-if __name__ == "__main__":
-    main()
+    def _combine_hashes(self, content_hash: str, optimizer_version_hash: str) -> str:
+        combined_hash = hashlib.sha256((content_hash + optimizer_version_hash).encode()).hexdigest()
+        return combined_hash

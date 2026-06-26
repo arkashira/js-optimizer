@@ -1,53 +1,38 @@
 import pytest
-from js_optimizer import JSOptimizer, Module
+from js_optimizer import JsOptimizer, SourceFile, OptimizerVersion
 
-def test_tree_shaking():
-    modules = [
-        Module("module1", ["export1", "export2"], True),
-        Module("module2", ["export3", "export4"], False),
-        Module("module3", ["export5", "export6"], True),
+def test_optimize():
+    optimizer_version = OptimizerVersion('1.0.0')
+    js_optimizer = JsOptimizer(optimizer_version)
+    source_files = [SourceFile('file1.js', 'console.log("Hello World!");')]
+    optimized_hash = js_optimizer.optimize(source_files)
+    assert len(optimized_hash) == 64
+
+def test_optimize_multiple_files():
+    optimizer_version = OptimizerVersion('1.0.0')
+    js_optimizer = JsOptimizer(optimizer_version)
+    source_files = [
+        SourceFile('file1.js', 'console.log("Hello World!");'),
+        SourceFile('file2.js', 'console.log("Hello Again!");')
     ]
-    optimizer = JSOptimizer(modules)
-    optimized_modules = optimizer.tree_shaking()
-    assert len(optimized_modules) == 2
+    optimized_hash = js_optimizer.optimize(source_files)
+    assert len(optimized_hash) == 64
 
-def test_critical_path_pre_compilation():
-    modules = [
-        Module("module1", ["export1", "export2"], True),
-        Module("module2", ["export3", "export4"], False),
-        Module("module3", ["export5", "export6"], True),
-    ]
-    optimizer = JSOptimizer(modules)
-    pre_compiled_modules = optimizer.critical_path_pre_compilation()
-    assert len(pre_compiled_modules) == 2
+def test_optimize_same_files_different_optimizer_version():
+    optimizer_version1 = OptimizerVersion('1.0.0')
+    optimizer_version2 = OptimizerVersion('2.0.0')
+    js_optimizer1 = JsOptimizer(optimizer_version1)
+    js_optimizer2 = JsOptimizer(optimizer_version2)
+    source_files = [SourceFile('file1.js', 'console.log("Hello World!");')]
+    optimized_hash1 = js_optimizer1.optimize(source_files)
+    optimized_hash2 = js_optimizer2.optimize(source_files)
+    assert optimized_hash1 != optimized_hash2
 
-def test_generate_source_maps():
-    modules = [
-        Module("module1", ["export1", "export2"], True),
-        Module("module2", ["export3", "export4"], False),
-        Module("module3", ["export5", "export6"], True),
-    ]
-    optimizer = JSOptimizer(modules)
-    source_maps = optimizer.generate_source_maps()
-    assert len(source_maps) == 3
-
-def test_dry_run():
-    modules = [
-        Module("module1", ["export1", "export2"], True),
-        Module("module2", ["export3", "export4"], False),
-        Module("module3", ["export5", "export6"], True),
-    ]
-    optimizer = JSOptimizer(modules)
-    report = optimizer.dry_run()
-    assert "Removed 1 modules" in report
-
-def test_main():
-    import sys
-    import io
-    sys.argv = ["js_optimizer.py", "--dry-run"]
-    capturedOutput = io.StringIO()
-    sys.stdout = capturedOutput
-    from js_optimizer import main
-    main()
-    sys.stdout = sys.__stdout__
-    assert "Removed 1 modules" in capturedOutput.getvalue()
+def test_optimize_different_files_same_optimizer_version():
+    optimizer_version = OptimizerVersion('1.0.0')
+    js_optimizer = JsOptimizer(optimizer_version)
+    source_files1 = [SourceFile('file1.js', 'console.log("Hello World!");')]
+    source_files2 = [SourceFile('file2.js', 'console.log("Hello Again!");')]
+    optimized_hash1 = js_optimizer.optimize(source_files1)
+    optimized_hash2 = js_optimizer.optimize(source_files2)
+    assert optimized_hash1 != optimized_hash2
